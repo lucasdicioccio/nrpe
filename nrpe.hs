@@ -78,7 +78,7 @@ instance Binary Packet where
     c <- getWord16be
     b <- getBytes 1024
     _pad <- getBytes 2
-    return $ Packet v q crc (Just $ w162e c) b
+    return $ Packet v q crc (Just $ w162e c) (B.takeWhile (/= 0) b)
 
 data Service = Service
   { nrpeHost   :: Host
