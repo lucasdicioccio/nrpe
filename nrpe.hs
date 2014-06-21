@@ -27,6 +27,7 @@ data QueryType = Req | Res
   deriving (Show, Eq, Ord)
 data Code = Ok | Warning | Error | Unknown
   deriving (Show, Eq, Ord, Enum)
+type Buffer = ByteString
 data Packet = Packet
   { packetVersion :: Version
   , packetType    :: QueryType
@@ -34,7 +35,9 @@ data Packet = Packet
   , packetRetCode :: Maybe Code
   , packetBuffer  ::  Buffer
   } deriving (Show, Eq, Ord)
-type Buffer = ByteString
+
+packetMessage :: Packet -> ByteString
+packetMessage = B.takeWhile (/= 0) . packetBuffer
 
 e2w16 :: Enum a => a -> Word16
 e2w16 = fromIntegral . fromEnum
@@ -78,7 +81,7 @@ instance Binary Packet where
     c <- getWord16be
     b <- getBytes 1024
     _pad <- getBytes 2
-    return $ Packet v q crc (Just $ w162e c) (B.takeWhile (/= 0) b)
+    return $ Packet v q crc (Just $ w162e c) b
 
 data Service = Service
   { nrpeHost   :: Host
