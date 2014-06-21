@@ -4,8 +4,8 @@ module Nrpe where
 
 import Prelude hiding (read)
 import Data.Binary (Binary (..), encode, decode)
-import Data.Binary.Put
-import Data.Binary.Get
+import Data.Binary.Put (putWord16be, putWord32be, putWord8, putByteString)
+import Data.Binary.Get (getWord16be, getWord32be, getBytes)
 import Data.ByteString hiding (repeat)
 import Data.ByteString.Internal (toForeignPtr)
 import Data.ByteString.Lazy (fromStrict)
@@ -13,9 +13,8 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString as B
 import Data.Word (Word16, Word32)
-import Network.Simple.TCP (connect)
 import Data.Digest.CRC32 (crc32)
-import Control.Applicative ((<$>))
+import Network.Simple.TCP (connect)
 import OpenSSL (withOpenSSL)
 import OpenSSL.Session hiding (connect)
 import qualified OpenSSL.Session as SSL
