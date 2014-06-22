@@ -2,6 +2,7 @@
 
 module Nrpe (
     Service (..)
+  , nrpe
   , check
   , Request (..)
   , Result (..)
