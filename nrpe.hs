@@ -1,6 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Nrpe where
+module Nrpe (
+    Service (..)
+  , check
+  , Request (..)
+  , Result (..)
+  ) where
 
 import Prelude hiding (read)
 import Data.Binary (Binary (..), encode, decode)
@@ -98,8 +103,15 @@ packRequest :: Request -> Packet
 packRequest (Request b) = updateCRC $ Packet version Req 0 Nothing b
   where version = 2
 
-exec :: Service -> Request -> IO (Packet)
-exec s r@(Request b) = do
+unpackResult :: Packet -> Result
+unpackResult pkt = Result (maybe Unknown id $ packetRetCode pkt) (packetMessage pkt)
+
+-- TODO: mode w/o SSL
+--       expose packet -> IO packet functions
+--       wrap request -> IO result
+--       verify that results always span at most one packet
+check :: Service -> Request -> IO Result
+check s r@(Request b) = do
   let sbuf = encode (packRequest r)
   connect (nrpeHost s) (show $ nrpePort s) (uncurry (act sbuf))
   where act sbuf skt _ = withOpenSSL $ do
@@ -109,9 +121,9 @@ exec s r@(Request b) = do
           SSL.connect ssl
           write ssl (L.toStrict sbuf)
           rbuf <- read ssl 1036
-          return $ decode $ fromStrict rbuf
+          return $ unpackResult . decode $ fromStrict rbuf
 
 nrpe :: Service
 nrpe = Service "127.0.0.1" 5666 True
 
-checkUsers = exec nrpe (Request "check_users")
+checkUsers = check nrpe (Request "check_users")
