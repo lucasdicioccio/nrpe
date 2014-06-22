@@ -21,7 +21,7 @@ data PluginOutput = PluginOutput
   } deriving Show
 
 srvPerfData = C.intercalate " " . srvPerfDataLines
-srvLongOutput = C.intercalate "\n" . srvPerfDataLines
+srvLongOutput = C.intercalate "\n" . srvLongOutputLines
 
 pluginOutput :: Parser PluginOutput
 pluginOutput = do
