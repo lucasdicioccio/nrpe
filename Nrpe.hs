@@ -1,8 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 module Nrpe (
     Service (..)
   , nrpe
+  , raw_check
   , check
   , Request (..)
   , Result (..)
@@ -20,7 +22,7 @@ import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString as B
 import Data.Word (Word16, Word32)
 import Data.Digest.CRC32 (crc32)
-import Network.Simple.TCP (connect)
+import Network.Simple.TCP (connect, send, recv)
 import OpenSSL (withOpenSSL)
 import OpenSSL.Session hiding (connect)
 import qualified OpenSSL.Session as SSL
@@ -33,17 +35,16 @@ data QueryType = Req | Res
   deriving (Show, Eq, Ord)
 data Code = Ok | Warning | Error | Unknown
   deriving (Show, Eq, Ord, Enum)
-type Buffer = ByteString
 data Packet = Packet
   { packetVersion :: Version
   , packetType    :: QueryType
   , packetCRC     :: Word32
   , packetRetCode :: Maybe Code
-  , packetBuffer  ::  Buffer
+  , packetByteString  :: ByteString
   } deriving (Show, Eq, Ord)
 
 packetMessage :: Packet -> ByteString
-packetMessage = B.takeWhile (/= 0) . packetBuffer
+packetMessage = B.takeWhile (/= 0) . packetByteString
 
 e2w16 :: Enum a => a -> Word16
 e2w16 = fromIntegral . fromEnum
@@ -95,36 +96,40 @@ data Service = Service
   , nrpeUseSSl :: Bool
   } deriving (Show, Eq, Ord)
 
-data Request = Request Buffer
+newtype Request = Request ByteString
   deriving (Show, Eq, Ord)
-data Result  = Result Code Buffer
-  deriving (Show, Eq, Ord)
+newtype Result a = Result (Code, a)
+  deriving (Show, Eq, Ord, Functor)
 
 packRequest :: Request -> Packet
 packRequest (Request b) = updateCRC $ Packet version Req 0 Nothing b
   where version = 2
 
-unpackResult :: Packet -> Result
-unpackResult pkt = Result (maybe Unknown id $ packetRetCode pkt) (packetMessage pkt)
+unpackResult :: Packet -> Result ByteString
+unpackResult pkt = Result (code, buf)
+  where code = maybe Unknown id $ packetRetCode pkt
+        buf  = packetMessage pkt
 
--- TODO: mode w/o SSL
---       expose packet -> IO packet functions
---       wrap request -> IO result
---       verify that results always span at most one packet
-check :: Service -> Request -> IO Result
-check s r@(Request b) = do
-  let sbuf = encode (packRequest r)
-  connect (nrpeHost s) (show $ nrpePort s) (uncurry (act sbuf))
-  where act sbuf skt _ = withOpenSSL $ do
-          ctx <- context
-          contextSetCiphers ctx "ADH"
-          ssl <- connection ctx skt
-          SSL.connect ssl
-          write ssl (L.toStrict sbuf)
-          rbuf <- read ssl 1036
-          return $ unpackResult . decode $ fromStrict rbuf
+-- TODO: verify that results always span at most one packet
+raw_check :: Service -> Request -> IO (Result ByteString)
+raw_check s r@(Request b) = do
+      let sbuf = encode (packRequest r)
+      connect (nrpeHost s) (show $ nrpePort s) (uncurry (act (nrpeUseSSl s) sbuf))
+      where act True sbuf skt _ = withOpenSSL $ do
+              ctx <- context
+              contextSetCiphers ctx "ADH"
+              ssl <- connection ctx skt
+              SSL.connect ssl
+              write ssl (L.toStrict sbuf)
+              rbuf <- read ssl 1036
+              return $ unpackResult . decode $ fromStrict rbuf
+            act False sbuf skt _ = do
+              send skt (L.toStrict sbuf)
+              Just rbuf <- recv skt 1036
+              return $ unpackResult . decode $ fromStrict rbuf
+
+check :: Service -> ByteString -> IO (Result ByteString)
+check s x = raw_check s $ Request x
 
 nrpe :: Service
 nrpe = Service "127.0.0.1" 5666 True
-
-checkUsers = check nrpe (Request "check_users")
