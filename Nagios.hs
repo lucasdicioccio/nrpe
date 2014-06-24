@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Nagios (
     PluginOutput (..)
@@ -12,13 +13,14 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as C
 import Data.Attoparsec.ByteString.Char8
+import Data.Typeable
 import Control.Applicative ((<$>))
 
 data PluginOutput = PluginOutput
   { srvOutput          :: ByteString
   , srvPerfDataLines   :: [ByteString]
   , srvLongOutputLines :: [ByteString]
-  } deriving Show
+  } deriving (Show, Typeable)
 
 srvPerfData = C.intercalate " " . srvPerfDataLines
 srvLongOutput = C.intercalate "\n" . srvLongOutputLines

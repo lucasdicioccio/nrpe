@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Nrpe (
     Service (..)
@@ -20,6 +21,7 @@ import Data.ByteString.Lazy (fromStrict)
 import qualified Data.ByteString.Lazy as L
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString as B
+import Data.Typeable
 import Data.Word (Word16, Word32)
 import Data.Digest.CRC32 (crc32)
 import Network.Simple.TCP (connect, send, recv)
@@ -99,7 +101,7 @@ data Service = Service
 newtype Request = Request ByteString
   deriving (Show, Eq, Ord)
 newtype Result a = Result (Code, a)
-  deriving (Show, Eq, Ord, Functor)
+  deriving (Show, Eq, Ord, Functor, Typeable)
 
 packRequest :: Request -> Packet
 packRequest (Request b) = updateCRC $ Packet version Req 0 Nothing b
