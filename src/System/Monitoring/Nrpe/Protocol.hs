@@ -14,7 +14,7 @@ module System.Monitoring.Nrpe.Protocol (
 import Prelude hiding (read)
 import Data.Binary (Binary (..), encode, decode)
 import Data.Binary.Put (putWord16be, putWord32be, putWord8, putByteString)
-import Data.Binary.Get (getWord16be, getWord32be, getBytes)
+import Data.Binary.Get (getWord16be, getWord32be, getByteString)
 import Data.ByteString hiding (repeat)
 import Data.ByteString.Internal (toForeignPtr)
 import Data.ByteString.Lazy (fromStrict)
@@ -88,8 +88,8 @@ instance Binary Packet where
     q <- get
     crc <- getWord32be
     c <- getWord16be
-    b <- getBytes 1024
-    _pad <- getBytes 2
+    b <- getByteString 1024
+    _pad <- getByteString 2
     return $ Packet v q crc (Just $ w162e c) b
 
 data Service = Service
