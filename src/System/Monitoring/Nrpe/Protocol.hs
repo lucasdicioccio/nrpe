@@ -2,7 +2,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module Nrpe (
+module System.Monitoring.Nrpe.Protocol (
     Service (..)
   , nrpe
   , raw_check

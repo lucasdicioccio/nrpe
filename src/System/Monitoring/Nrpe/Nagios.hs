@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module Nagios (
+module System.Monitoring.Nrpe.Nagios (
     PluginOutput (..)
   , parseOutput
   , srvLongOutput

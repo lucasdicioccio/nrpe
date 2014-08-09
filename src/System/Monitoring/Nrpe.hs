@@ -7,12 +7,13 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Usage (
+module System.Monitoring.Nrpe (
     exec
-  )  where
+  ) where
 
-import Nrpe
-import Nagios
+import System.Monitoring.Nrpe.Protocol
+import System.Monitoring.Nrpe.Nagios
+
 import Data.ByteString (ByteString)
 import Control.Applicative ((<$>))
 
@@ -36,7 +37,6 @@ liftNRPE = fmap . fmap . fmap
 
 exec :: Service -> ByteString -> (PluginOutput -> a) -> IONRPE a
 exec s x f = liftNRPE f $ execParse s x
-
 
 haxlExample = do
   let stateStore = stateSet NRPEState stateEmpty
