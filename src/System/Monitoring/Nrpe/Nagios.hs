@@ -16,12 +16,17 @@ import Data.Attoparsec.ByteString.Char8
 import Data.Typeable
 import Control.Applicative ((<$>))
 
+-- | Data type to represent Nagios plugin outputs.
+--
+-- PerfData lines and LongOutput lines are given as an array format.
+-- Use srvPerfData and srvLongOutput to get a one-ByteString result.
 data PluginOutput = PluginOutput
   { srvOutput          :: ByteString
   , srvPerfDataLines   :: [ByteString]
   , srvLongOutputLines :: [ByteString]
   } deriving (Show, Typeable)
 
+srvPerfData, srvLongOutput :: PluginOutput -> ByteString
 srvPerfData = C.intercalate " " . srvPerfDataLines
 srvLongOutput = C.intercalate "\n" . srvLongOutputLines
 
@@ -37,6 +42,7 @@ pluginOutput = do
 tillPipe = takeWhile (notInClass "|")
 tillNewLine = takeWhile (notInClass "\n")
 
+-- | Tries to interpret a Bytestring as a PluginOutput.
 parseOutput :: ByteString -> Either String PluginOutput
 parseOutput = parseOnly pluginOutput
 

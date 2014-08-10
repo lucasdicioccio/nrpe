@@ -5,10 +5,9 @@
 module System.Monitoring.Nrpe.Protocol (
     Service (..)
   , nrpe
-  , raw_check
   , check
-  , Request (..)
   , Result (..)
+  , Code (..)
   ) where
 
 import Prelude hiding (read)
@@ -92,14 +91,18 @@ instance Binary Packet where
     _pad <- getByteString 2
     return $ Packet v q crc (Just $ w162e c) b
 
+-- | Data type to represent an NRPE service.
 data Service = Service
-  { nrpeHost   :: Host
-  , nrpePort   :: Port
-  , nrpeUseSSl :: Bool
+  { nrpeHost   :: Host -- ^ the hostname/IP address of the NRPE service
+  , nrpePort   :: Port -- ^ the TCP port
+  , nrpeUseSSl :: Bool -- ^ whether or not the service implements SSL
   } deriving (Show, Eq, Ord)
 
+-- | Newtype to wrap requests.
 newtype Request = Request ByteString
   deriving (Show, Eq, Ord)
+
+-- | Newtype to wrap results.
 newtype Result a = Result (Code, a)
   deriving (Show, Eq, Ord, Functor, Typeable)
 
@@ -130,8 +133,10 @@ raw_check s r@(Request b) = do
               Just rbuf <- recv skt 1036
               return $ unpackResult . decode $ fromStrict rbuf
 
+-- | Runs an NRPE check against a service.
 check :: Service -> ByteString -> IO (Result ByteString)
 check s x = raw_check s $ Request x
 
-nrpe :: Service
-nrpe = Service "127.0.0.1" 5666 True
+-- | Returns a default service for a given host (port 5666 and SSL=true).
+nrpe :: Host -> Service
+nrpe h = Service h 5666 True
